@@ -1,2 +1,54 @@
 # ss-ate-surrogates-public
 R code accompanying "Semi-Supervised Calibration of Inferred Outcomes for Estimating Average Treatment Effects with Validated Outcomes"
+
+# Semi-supervised ATE estimation with surrogates
+
+This repository contains code for estimating treatment-specific means and the average treatment effect (ATE) in a semi-supervised setting where the primary outcome is only observed for a labeled subset of units.
+
+## Files
+
+- `ss_ate_surrogates.R`: main estimation function
+- `example_simulation.R`: example applying the method to a simulated dataset
+
+## Method summary
+
+The function `ss_ate_surrogates()` combines:
+- cross-fitted treatment propensity score estimation
+- cross-fitted labeling propensity score estimation
+- calibration of a user-supplied naive imputation model
+- arm-specific outcome regression
+
+It returns estimates of:
+- `mu1 = E[Y(1)]`
+- `mu0 = E[Y(0)]`
+- `ATE = mu1 - mu0`
+
+Optional analytic and bootstrap variance estimates are also available.
+
+## Required inputs
+
+The input data frame must contain:
+- outcome variable
+- labeling indicator
+- treatment indicator
+- naive imputation variable
+- covariates used in nuisance models
+
+Assumptions for the current implementation:
+- treatment is binary and coded 0/1
+- labeling indicator is binary and coded 0/1
+- the naive imputation variable is on the probability scale for binary outcomes
+
+## Supported nuisance models
+
+For treatment and labeling propensity scores, the function supports:
+- `glm`
+- `glmnet`
+- `superlearner`
+
+Each nuisance model is specified using a named list such as:
+
+```r
+list(method = "glm", formula = A ~ X1 + X2)
+list(method = "glmnet", xvars = c("X1", "X2"), alpha = 1)
+list(method = "superlearner", xvars = c("X1", "X2"), SL.library = c("SL.glm", "SL.mean"))
