@@ -179,17 +179,17 @@
 
 
 ss_ate_surrogates <- function(data, kfolds, outcome, label, treatment, naive_imp,
-                    return_analytic_var,
-                    missing = NULL,
-                    treat_spec = list(method = "glm"),
-                    label_spec = list(method = "glm"),
-                    prob_bound = 1e-6,
-                    return_bootstrap_var = FALSE,
-                    nboot = 200,
-                    bootstrap_mode = c("for", "foreach"),
-                    bootstrap_seed = 999,
-                    mainfit_seed = 999,
-                    show_progress = TRUE) {
+                              return_analytic_var,
+                              missing = NULL,
+                              treat_spec = list(method = "glm"),
+                              label_spec = list(method = "glm"),
+                              prob_bound = 1e-6,
+                              return_bootstrap_var = FALSE,
+                              nboot = 200,
+                              bootstrap_mode = c("for", "foreach"),
+                              bootstrap_seed = 999,
+                              mainfit_seed = 999,
+                              show_progress = TRUE) {
   
   bootstrap_mode <- match.arg(bootstrap_mode)
   
@@ -508,52 +508,50 @@ ss_ate_surrogates <- function(data, kfolds, outcome, label, treatment, naive_imp
   
   set.seed(bootstrap_seed)
   
-  if (bootstrap_mode == "for") {
-    if (show_progress && requireNamespace("progressr", quietly = TRUE))
-      p <- progressr::progressor(steps = nboot)
-    else
-      p <- NULL
+  run_bootstrap <- function(p = NULL) {
+    if (bootstrap_mode == "for") {
+      for (b in seq_len(nboot)) {
+        idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
+        boot_fit <- run_once(data[idx, , drop = FALSE])
+        boot_mat[b, ] <<- as.numeric(as.matrix(boot_fit$results.mu))
+        if (!is.null(p)) p(sprintf("bootstrap %d/%d", b, nboot))
+      }
+    }
     
-    for (b in seq_len(nboot)) {
-      idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
-      boot_fit <- run_once(data[idx, , drop = FALSE])
-      boot_mat[b, ] <- as.numeric(as.matrix(boot_fit$results.mu))
-      if (!is.null(p)) p(sprintf("bootstrap %d/%d", b, nboot))
+    if (bootstrap_mode == "foreach") {
+      if (!requireNamespace("foreach", quietly = TRUE))
+        stop("Package 'foreach' required")
+      if (!requireNamespace("doFuture", quietly = TRUE))
+        stop("Package 'doFuture' required")
+      
+      doFuture::registerDoFuture()
+      
+      boot_res <- foreach::foreach(
+        b = seq_len(nboot),
+        .combine = rbind,
+        .options.future = list(
+          seed = TRUE,
+          packages = c("SuperLearner", "glmnet", "mgcv")
+        )
+      ) %dofuture% {
+        idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
+        boot_fit <- run_once(data[idx, , drop = FALSE])
+        out <- as.numeric(as.matrix(boot_fit$results.mu))
+        if (!is.null(p)) p(sprintf("bootstrap %d/%d", b, nboot))
+        out
+      }
+      
+      boot_mat[,] <<- boot_res
     }
   }
   
-  if (bootstrap_mode == "foreach") {
-    if (!requireNamespace("foreach", quietly = TRUE))
-      stop("Package 'foreach' required")
-    
-    if (!requireNamespace("doFuture", quietly = TRUE))
-      stop("Package 'doFuture' required")
-    
-    doFuture::registerDoFuture()
-    
-    if (show_progress && requireNamespace("progressr", quietly = TRUE))
+  if (show_progress && requireNamespace("progressr", quietly = TRUE)) {
+    progressr::with_progress({
       p <- progressr::progressor(steps = nboot)
-    else
-      p <- NULL
-    
-    boot_res <- foreach::foreach(
-      b = seq_len(nboot),
-      .combine = rbind,
-      .options.future = list(seed = TRUE)
-    ) %dofuture% {
-      
-      idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
-      boot_fit <- run_once(data[idx, , drop = FALSE])
-      
-      out <- as.numeric(as.matrix(boot_fit$results.mu))
-      
-      if (!is.null(p))
-        p(sprintf("bootstrap %d/%d", b, nboot))
-      
-      out
-    }
-    
-    boot_mat[,] <- boot_res
+      run_bootstrap(p)
+    })
+  } else {
+    run_bootstrap(NULL)
   }
   
   boot_var_vec <- apply(boot_mat, 2, var, na.rm = TRUE)

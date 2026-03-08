@@ -1,14 +1,12 @@
-# ss-ate-surrogates-public
-R code accompanying "Semi-Supervised Calibration of Inferred Outcomes for Estimating Average Treatment Effects with Validated Outcomes"
-
 # Semi-supervised ATE estimation with surrogates
 
-This repository contains code for estimating treatment-specific means and the average treatment effect (ATE) in a semi-supervised setting where the primary outcome is only observed for a labeled subset of units.
+This repository contains R code accompanying "Semi-Supervised Calibration of Inferred Outcomes for Estimating Average Treatment Effects with Validated Outcomes" for estimating treatment-specific means and the average treatment effect (ATE) in a semi-supervised setting where the primary outcome is only observed for a labeled subset of units.
 
 ## Files
 
-- `ss_ate_surrogates.R`: main estimation function
-- `example_simulation.R`: example applying the method to a simulated dataset
+- `ss_ate_surrogates.R`: main estimation function `ss_ate_surrogates()`
+- `simulated_analysis_dataset.csv`: simulated dataset based on the real data application in the main paper, generated using the R package `synthpop`
+- `example_analysis.R`: example applying the method to a simulated dataset
 
 ## Method summary
 
@@ -49,6 +47,7 @@ For treatment and labeling propensity scores, the function supports:
 Each nuisance model is specified using a named list such as:
 
 ```r
-list(method = "glm", formula = A ~ X1 + X2)
-list(method = "glmnet", xvars = c("X1", "X2"), alpha = 1)
-list(method = "superlearner", xvars = c("X1", "X2"), SL.library = c("SL.glm", "SL.mean"))
+list(method = "glm", formula = ..., family = ...)
+list(method = "glmnet", formula = ... or xvars = ..., alpha = 1, nfolds = 5, family = "binomial", lambda_choice = "lambda.min")
+list(method = "superlearner", formula = ... or xvars = ..., family = binomial(), SL.library = c(...))
+```
