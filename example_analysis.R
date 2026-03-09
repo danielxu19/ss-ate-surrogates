@@ -83,7 +83,7 @@ results_lasso
 #### Example 3: Using SuperLearner for treatment and labeling propensity scores
 # Note this may take a few minutes, hence adjusted nboot = 100 for illustrative purposes
 library(SuperLearner)
-library(mgcv)
+library(gam)
 library(glmnet)
 treat_spec <- list(
   method = "superlearner",

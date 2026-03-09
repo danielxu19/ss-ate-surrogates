@@ -531,7 +531,7 @@ ss_ate_surrogates <- function(data, kfolds, outcome, label, treatment, naive_imp
         .combine = rbind,
         .options.future = list(
           seed = TRUE,
-          packages = c("SuperLearner", "glmnet", "mgcv")
+          packages = c("SuperLearner", "glmnet", "gam")
         )
       ) %dofuture% {
         idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
