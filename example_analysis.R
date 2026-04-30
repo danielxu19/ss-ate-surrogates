@@ -1,10 +1,6 @@
 source("ss_ate_surrogates.R")
 data <- read.csv("simulated_analysis_dataset.csv")
 
-library(foreach)
-library(progressr)
-library(doFuture)
-
 #### Example 1: Using GLMs for treatment and labeling propensity scores
 treat_spec <- list(
   method = "glm",
@@ -20,7 +16,6 @@ label_spec <- list(
 
 covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
 
-plan(multisession, gc = TRUE, workers = 8)
 results_glm <- ss_ate_surrogates(data,
                            kfolds = 5,
                            outcome = "das28_crp3_binary",
@@ -36,15 +31,14 @@ results_glm <- ss_ate_surrogates(data,
                            return_bootstrap_var = TRUE,
                            nboot = 1000,
                            bootstrap_mode = c("foreach"),
+                           nworkers = 8,
                            bootstrap_seed = 999,
                            mainfit_seed = 999,
                            show_progress = TRUE,
                            diag = FALSE)
-plan("sequential")
 results_glm
 
 #### Example 2: Using Lasso for treatment and labeling propensity scores
-library(glmnet)
 treat_spec <- list(
   method = "glmnet",
   xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other"),
@@ -63,7 +57,6 @@ label_spec <- list(
 
 covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
 
-plan(multisession, gc = TRUE, workers = 8)
 results_lasso <- ss_ate_surrogates(data, 
                                    kfolds = 5, 
                                    outcome = "das28_crp3_binary", 
@@ -79,19 +72,16 @@ results_lasso <- ss_ate_surrogates(data,
                                    return_bootstrap_var = TRUE,
                                    nboot = 1000,
                                    bootstrap_mode = c("foreach"),
+                                   nworkers = 8,
                                    bootstrap_seed = 999,
                                    mainfit_seed = 999,
                                    show_progress = TRUE,
                                    diag = FALSE)
-plan("sequential")
 results_lasso
 
 
 #### Example 3: Using SuperLearner for treatment and labeling propensity scores
 # Note this may take a few minutes, hence adjusted nboot = 100 for illustrative purposes
-library(SuperLearner)
-library(gam)
-library(glmnet)
 treat_spec <- list(
   method = "superlearner",
   xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other"),
@@ -106,7 +96,6 @@ label_spec <- list(
 
 covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
 
-plan(multisession, gc = TRUE, workers = 8)
 results_superlearner <- ss_ate_surrogates(data, 
                                            kfolds = 5, 
                                            outcome = "das28_crp3_binary", 
@@ -122,9 +111,9 @@ results_superlearner <- ss_ate_surrogates(data,
                                            return_bootstrap_var = TRUE,
                                            nboot = 100,
                                            bootstrap_mode = c("foreach"),
+                                           nworkers = 8,
                                            bootstrap_seed = 999,
                                            mainfit_seed = 999,
                                            show_progress = TRUE,
                                            diag = FALSE)
-plan("sequential")
 results_superlearner

@@ -70,6 +70,9 @@
 #' `"for"` uses a standard loop; `"foreach"` uses `%dofuture%` for parallel
 #' bootstrap computation.
 #'
+#' @param nworkers Optional integer number of parallel workers to use when
+#' `bootstrap_mode = "foreach"`. If `NULL`, uses `future::availableCores()`.
+#'
 #' @param bootstrap_seed Integer seed used before bootstrap resampling.
 #'
 #' @param mainfit_seed Integer seed used before the main sample split / cross-fit.
@@ -179,6 +182,7 @@
 #'   return_bootstrap_var = TRUE,
 #'   nboot = 100,
 #'   bootstrap_mode = "for",
+#'   nworkers = 4,
 #'   treat_spec = list(
 #'     method = "superlearner",
 #'     xvars = c("X1", "X2", "X3"),
@@ -366,6 +370,29 @@ ss_ate_surrogates_predict_binary_model <- function(obj, new_data, prob_bound) {
   }
   
   stop("Unsupported prediction method")
+}
+
+ss_ate_surrogates_bootstrap_packages <- function(treat_spec, label_spec) {
+  specs <- list(treat_spec, label_spec)
+  packages <- character()
+  
+  for (spec in specs) {
+    method <- tolower(ss_ate_surrogates_null_coalesce(spec$method, "glm"))
+    
+    if (method == "glmnet")
+      packages <- c(packages, "glmnet")
+    
+    if (method == "superlearner") {
+      packages <- c(packages, "SuperLearner")
+      sl_library <- ss_ate_surrogates_null_coalesce(spec$SL.library, c("SL.glm", "SL.mean"))
+      if (any(sl_library == "SL.glmnet"))
+        packages <- c(packages, "glmnet")
+      if (any(sl_library == "SL.gam"))
+        packages <- c(packages, "gam")
+    }
+  }
+  
+  unique(packages)
 }
 
 ss_ate_surrogates_capture_warning_value <- function(w) {
@@ -765,6 +792,7 @@ ss_ate_surrogates <- function(data, kfolds, outcome, label, treatment, naive_imp
                               return_bootstrap_var = FALSE,
                               nboot = 200,
                               bootstrap_mode = c("for", "foreach"),
+                              nworkers = NULL,
                               bootstrap_seed = 999,
                               mainfit_seed = 999,
                               show_progress = TRUE,
@@ -836,19 +864,30 @@ ss_ate_surrogates <- function(data, kfolds, outcome, label, treatment, naive_imp
     }
     
     if (bootstrap_mode == "foreach") {
+      if (!requireNamespace("future", quietly = TRUE))
+        stop("Package 'future' required")
       if (!requireNamespace("foreach", quietly = TRUE))
         stop("Package 'foreach' required")
       if (!requireNamespace("doFuture", quietly = TRUE))
         stop("Package 'doFuture' required")
       
+      workers <- ss_ate_surrogates_null_coalesce(nworkers, future::availableCores())
+      future_packages <- ss_ate_surrogates_bootstrap_packages(treat_spec, label_spec)
+      old_plan <- future::plan(future::multisession, gc = TRUE, workers = workers)
+      on.exit(future::plan(old_plan), add = TRUE)
+      
       doFuture::registerDoFuture()
+      
+      suppressPackageStartupMessages(
+        require("doFuture", character.only = TRUE)
+      )
       
       boot_res <- foreach::foreach(
         b = seq_len(nboot),
         .combine = rbind,
         .options.future = list(
           seed = TRUE,
-          packages = c("SuperLearner", "glmnet", "gam")
+          packages = future_packages
         )
       ) %dofuture% {
         idx <- sample.int(nrow(data), nrow(data), replace = TRUE)
