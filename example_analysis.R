@@ -63,7 +63,6 @@ label_spec <- list(
 
 covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
 
-
 plan(multisession, gc = TRUE, workers = 8)
 results_lasso <- ss_ate_surrogates(data, 
                                    kfolds = 5, 
@@ -105,6 +104,7 @@ label_spec <- list(
   SL.library = c("SL.glm", "SL.glmnet", "SL.gam")
 )
 
+covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
 
 plan(multisession, gc = TRUE, workers = 8)
 results_superlearner <- ss_ate_surrogates(data, 
