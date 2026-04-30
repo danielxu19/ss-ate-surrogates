@@ -13,8 +13,8 @@ This repository contains R code accompanying "Semi-Supervised Calibration of Inf
 The function `ss_ate_surrogates()` combines:
 - cross-fitted treatment propensity score estimation
 - cross-fitted labeling propensity score estimation
-- calibration of a user-supplied naive imputation model
-- arm-specific outcome regression
+- cross-fitted calibration of user-supplied naive imputations for the baseline outcome model using weighted linear regression, followed by estimation of the baseline outcome model using linear regression
+- calibration of a user-supplied naive imputations for final estimator
 
 It returns estimates of:
 - `mu1 = E[Y(1)]`
