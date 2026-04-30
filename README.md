@@ -5,8 +5,8 @@ This repository contains R code accompanying "Semi-Supervised Calibration of Inf
 ## Files
 
 - `ss_ate_surrogates.R`: main estimation function `ss_ate_surrogates()`
-- `simulated_analysis_dataset.csv`: simulated dataset based on the real data application in the main paper, generated using the R package `synthpop`
-- `example_analysis.R`: example applying the method to a simulated dataset
+- `simulated_analysis_dataset.csv`: simulated dataset based on the real data application in the main paper
+- `example_analysis.R`: example applying the method to `simulated_analysis_dataset.csv`
 
 ## Method summary
 
