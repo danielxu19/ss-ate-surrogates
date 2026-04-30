@@ -8,34 +8,38 @@ library(doFuture)
 #### Example 1: Using GLMs for treatment and labeling propensity scores
 treat_spec <- list(
   method = "glm",
-  formula = tx ~ sex_cd + race_cd_updated + age_tx_months + mean_crp + cci_score + num_encounters + gcortico + csdmard + other,
+  formula = tx ~ sex_cd + race_cd_updated + age_tx_months + mean_crp + cci_score + num_encounters_q + gcortico + csdmard + other,
   family = binomial()
 )
 
 label_spec <- list(
   method = "glm",
-  formula = r ~ sex_cd + race_cd_updated + age_tx_months + mean_crp + cci_score + num_encounters + gcortico + csdmard + other + tx,
+  formula = r ~ sex_cd + race_cd_updated + age_tx_months + mean_crp + cci_score + num_encounters_q + gcortico + csdmard + other + tx,
   family = binomial()
 )
 
+covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
+
 plan(multisession, gc = TRUE, workers = 8)
-results_glm <- ss_ate_surrogates(data, 
-                           kfolds = 5, 
-                           outcome = "das28_crp3_binary", 
-                           label = "r", 
-                           treatment = "tx", 
-                           naive_imp = "xihat", 
-                           return_analytic_var = TRUE, 
-                           missing = c("mean_crp"), 
+results_glm <- ss_ate_surrogates(data,
+                           kfolds = 5,
+                           outcome = "das28_crp3_binary",
+                           label = "r",
+                           treatment = "tx",
+                           naive_imp = "xihat",
+                           covariates = covariates,
+                           return_analytic_var = TRUE,
+                           missing = c("mean_crp"),
                            treat_spec = treat_spec,
-                           label_spec = label_spec, 
+                           label_spec = label_spec,
                            prob_bound = 1e-6,
                            return_bootstrap_var = TRUE,
                            nboot = 1000,
                            bootstrap_mode = c("foreach"),
                            bootstrap_seed = 999,
                            mainfit_seed = 999,
-                           show_progress = TRUE)
+                           show_progress = TRUE,
+                           diag = FALSE)
 plan("sequential")
 results_glm
 
@@ -43,7 +47,7 @@ results_glm
 library(glmnet)
 treat_spec <- list(
   method = "glmnet",
-  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters", "gcortico", "csdmard", "other"),
+  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other"),
   alpha = 1,
   nfolds = 5,
   lambda_choice = "lambda.min"
@@ -51,31 +55,35 @@ treat_spec <- list(
 
 label_spec <- list(
   method = "glmnet",
-  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters", "gcortico", "csdmard", "other", "tx"),
+  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other", "tx"),
   alpha = 1,
   nfolds = 5,
   lambda_choice = "lambda.min"
 )
 
+covariates <- c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other")
+
 
 plan(multisession, gc = TRUE, workers = 8)
 results_lasso <- ss_ate_surrogates(data, 
-                                         kfolds = 5, 
-                                         outcome = "das28_crp3_binary", 
-                                         label = "r", 
-                                         treatment = "tx", 
-                                         naive_imp = "xihat", 
-                                         return_analytic_var = TRUE, 
-                                         missing = c("mean_crp"), 
-                                         treat_spec = treat_spec,
-                                         label_spec = label_spec, 
-                                         prob_bound = 1e-6,
-                                         return_bootstrap_var = TRUE,
-                                         nboot = 1000,
-                                         bootstrap_mode = c("foreach"),
-                                         bootstrap_seed = 999,
-                                         mainfit_seed = 999,
-                                         show_progress = TRUE)
+                                   kfolds = 5, 
+                                   outcome = "das28_crp3_binary", 
+                                   label = "r", 
+                                   treatment = "tx", 
+                                   naive_imp = "xihat", 
+                                   covariates = covariates,
+                                   return_analytic_var = TRUE, 
+                                   missing = c("mean_crp"), 
+                                   treat_spec = treat_spec,
+                                   label_spec = label_spec, 
+                                   prob_bound = 1e-6,
+                                   return_bootstrap_var = TRUE,
+                                   nboot = 1000,
+                                   bootstrap_mode = c("foreach"),
+                                   bootstrap_seed = 999,
+                                   mainfit_seed = 999,
+                                   show_progress = TRUE,
+                                   diag = FALSE)
 plan("sequential")
 results_lasso
 
@@ -87,13 +95,13 @@ library(gam)
 library(glmnet)
 treat_spec <- list(
   method = "superlearner",
-  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters", "gcortico", "csdmard", "other"),
+  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other"),
   SL.library = c("SL.glm", "SL.glmnet", "SL.gam")
 )
 
 label_spec <- list(
   method = "superlearner",
-  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters", "gcortico", "csdmard", "other", "tx"),
+  xvars = c("sex_cd", "race_cd_updated", "age_tx_months", "mean_crp", "cci_score", "num_encounters_q", "gcortico", "csdmard", "other", "tx"),
   SL.library = c("SL.glm", "SL.glmnet", "SL.gam")
 )
 
@@ -105,6 +113,7 @@ results_superlearner <- ss_ate_surrogates(data,
                                            label = "r", 
                                            treatment = "tx", 
                                            naive_imp = "xihat", 
+                                           covariates = covariates,
                                            return_analytic_var = TRUE, 
                                            missing = c("mean_crp"), 
                                            treat_spec = treat_spec,
@@ -115,6 +124,7 @@ results_superlearner <- ss_ate_surrogates(data,
                                            bootstrap_mode = c("foreach"),
                                            bootstrap_seed = 999,
                                            mainfit_seed = 999,
-                                           show_progress = TRUE)
+                                           show_progress = TRUE,
+                                           diag = FALSE)
 plan("sequential")
 results_superlearner
